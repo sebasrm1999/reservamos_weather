@@ -1,7 +1,7 @@
 import React,{useEffect} from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import {createStackNavigator} from '@react-navigation/stack';
-import Login from './src/screens/Login';
+import Home from './src/screens/Home';
 
 const Stack = createStackNavigator();
 
@@ -11,14 +11,14 @@ export default function App() {
       <Stack.Navigator
       screenOptions={{
         headerStyle : {
-          backgroundColor: '#FFF'
+          backgroundColor: '#002674'
         },
         headerTintColor: '#067d26'
       }}
       >
         <Stack.Screen
-          name='Login'
-          component={Login}
+          name='Home'
+          component={Home}
           options = {{title : ''}}
         />
         

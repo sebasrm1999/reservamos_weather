@@ -1,43 +1,74 @@
 import React, {useState} from 'react';
-import { Alert, Image, StyleSheet, Text, View, ImageBackground } from 'react-native';
+import { Alert, Image, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import {FontAwesome5} from '@expo/vector-icons';
 import { ScrollView, TextInput, TouchableOpacity } from 'react-native-gesture-handler';
 import axios from 'axios';
 import { useFonts, DancingScript_600SemiBold } from '@expo-google-fonts/dancing-script';
 import AppLoading from 'expo-app-loading';
+import {REACT_APP_WEATHER_API_KEY} from '@env';
 
 export default function Home(props){
-    const [cargando, setCargando] = useState(false);
-    const [cityList, setCityList] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [cityObj, setCityObj] = useState(null);
+    const [daysList, setDaysList] = useState([]);
     const [city, setCity] = useState("");
     let [fontsLoaded] = useFonts({
         DancingScript_600SemiBold,
       });
+      const windowHeight = useWindowDimensions().height;
+      const windowWidth = useWindowDimensions().width;
 
       const searchCity = async () => {
-        setCargando(true);
-        axios.get(`https://search.reservamos.mx/api/v2/places`, { params: { city } })
+          if(city != ""){
+            await setLoading(true);
+            await axios.get(`https://search.reservamos.mx/api/v2/places`, { params: { q : city} })
+            .then(json => {
+                console.log(json.data[0]);
+                if(json.data.length > 0){
+
+                    searchForecast(json.data[0]);
+                    
+                } else {
+                    Alert.alert('Ups', 'No cities found. Try with another one...');
+                    setCityObj(null);
+                    setLoading(false);
+                }
+            })
+            .catch((error) => {
+                console.log(error);
+                Alert.alert('ERROR', 'An error occurred. Please try again...');
+                setLoading(false);
+            }
+            );
+          } else {
+            Alert.alert('Ups!', 'Please type a city on the search bar...');
+          }
+      }
+
+      const searchForecast = cityData => {
+        axios.get(`https://api.openweathermap.org/data/2.5/onecall`, { 
+            params: { lat : cityData.lat, lon: cityData.long, appid: REACT_APP_WEATHER_API_KEY} 
+        })
         .then(json => {
             console.log(json.data);
-            setCargando(false);
             if(json.data){
 
-                
+               setCityObj(cityData);
+               setDaysList(json.data.daily.slice(0, 7));
+               setLoading(false);
                 
             } else {
-                Alert.alert('Error', 'Correo o contraseña incorrectos...');
+                Alert.alert('Ups', 'No cities found. Try with another one...');
+                setCityobj(null);
+                setLoading(false);
             }
         })
         .catch((error) => {
             console.log(error);
-            Alert.alert('ERROR', 'Ocurrió un error, por favor intenta nuevamente');
-            setCargando(false);
+            Alert.alert('ERROR', 'An error occurred. Please try again...');
+            setLoading(false);
         }
         );
-      }
-
-      const searchForecast = async () => {
-          
     }
 
       if (!fontsLoaded) {
@@ -45,7 +76,7 @@ export default function Home(props){
       }
 
     return (
-                <View style={{flex: 1, backgroundColor: '#FFF'}}>
+                <View style={{flex: 1, backgroundColor: '#FFF', minHeight: Math.round(windowHeight)}}>
                     <View style={styles.header}>
                         <View style={{justifyContent: 'center', alignItems: 'center'}}>
                             <View style={{flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'center'}}>
@@ -62,27 +93,32 @@ export default function Home(props){
                                 placeholder="Search for a city..."
                                 placeholderTextColor="#999594"
                                 keyboardType="default"
-                                onChange={val => setCorreo(val.nativeEvent.text)}
+                                onChange={val => setCity(val.nativeEvent.text)}
                             />
-                            <TouchableOpacity>
+                            <TouchableOpacity onPress={searchCity}>
                                 <FontAwesome5 style={{paddingLeft: 10}} name="search-location" size={30} color='#002674'/>
                             </TouchableOpacity>
                         </View>
                     </View>
                     <View style={styles.container}>
                         
-                        {cityList.length == 0 ? 
+                        {cityObj ? 
                         <View>
-                            <Text style={{fontSize: 20, color: '#002674'}}>No city found yet...</Text>
-                        </View> 
-                        : 
-                        <ScrollView>
-                            {cityList.map(city => 
-                            <View>
-
+                            <View style={{
+                                width: Math.round(windowWidth) - 75, 
+                                height: '90%',
+                                borderColor: '#002674',
+                                borderWidth: 2,
+                                borderRadius: 10,
+                                flexDirection: 'column'}
+                            }>
+                                <Text>{cityObj.city_name}</Text>
                             </View>
-                            )}
-                        </ScrollView>
+                        </View>
+                        : 
+                        <View>
+                            <Text style={{fontSize: 20, color: '#002674'}}>No cities found yet...</Text>
+                        </View>
                         }
                         
                     </View>
@@ -156,5 +192,12 @@ let styles = StyleSheet.create({
         width: 60,
         height: 30,
         resizeMode: 'contain'
+    },
+    cityItem: {
+        height: '90%',
+        borderColor: '#002674',
+        borderWidth: 2,
+        borderRadius: 10,
+        flexDirection: 'column'
     }
   });
